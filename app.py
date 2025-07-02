@@ -429,11 +429,15 @@ def predict_test_image(index):
 if __name__ == '__main__':
     print("Starting MNIST Neural Network Training Server...")
     
+    # Get port from environment variable or use default
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Server will run on port: {port}")
+    print(f"Environment PORT variable: {os.environ.get('PORT', 'Not set')}")
+    
     # Load MNIST data on startup
     if load_mnist_data():
         print("Server ready!")
-        # Use environment port or fallback to 5000
-        port = int(os.environ.get('PORT', 5000))
+        print(f"Starting Flask app on 0.0.0.0:{port}")
         app.run(debug=False, host='0.0.0.0', port=port)
     else:
         print("Failed to load MNIST dataset. Server not started.")
