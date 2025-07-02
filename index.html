@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST Neural Network Trainer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        bo        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 30px;
+            margin-top: 30px;
+            border: 1px solid #e9ecef;
+            display: none;
+        }
+        
+        .test-section.show {
+            display: block;
+        }
+        
+        .test-section.placeholder {
+            display: block;
+            text-align: center;
+            background: #f1f3f4;
+            border: 2px dashed #bdc3c7;
+        }
+        
+        .test-placeholder {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .test-placeholder .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        .test-placeholder h4 {
+            margin: 0 0 10px 0;
+            color: #5d6d7e;
+        }
+        
+        .test-placeholder p {
+            margin: 0;
+            font-style: italic;
+        }
+        
+        .test-section h3 {   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #2c3e50;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            margin: 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .info-notice {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1em;
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+        }
+        
+        .info-notice .icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+        
+        .status-panel {
+            background: #ecf0f1;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .status-panel.show {
+            display: block;
+        }
+        
+        .status-panel.training {
+            background: #e8f5e8;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .status-panel.error {
+            background: #ffe6e6;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .status-panel.ready {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .control-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .control-panel h3 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+            font-size: 1.3em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+        }
+        
+        .btn-stop:hover:not(:disabled) {
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3) !important;
+        }
+        
+        .info-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .info-section h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .info-item .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3498db;
+            display: block;
+        }
+        
+        .info-item .label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .chart-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            min-height: 400px;
+        }
+        
+        .chart-panel h4 {
+            margin: 0 0 20px 0;
+            text-align: center;
+            color: #2c3e50;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .model-summary {
+            background: #2c3e50;
+            color: #ecf0f1;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            padding: 20px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 1px solid #e9ecef;
+            display: none;
+        }
+        
+        .test-section.show {
+            display: block;
+        }
+        
+        .test-section h3 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+            font-size: 1.4em;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .test-image-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        
+        .test-image-display {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .test-image-display img {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #333;
+            image-rendering: pixelated;
+            background: white;
+            margin-bottom: 15px;
+        }
+        
+        .test-results {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .prediction-result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        
+        .prediction-result.correct {
+            background: #e8f5e8;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+        
+        .prediction-result.incorrect {
+            background: #ffe6e6;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+        
+        .probabilities {
+            margin-top: 20px;
+        }
+        
+        .probability-bar {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        
+        .probability-label {
+            width: 30px;
+            font-weight: bold;
+        }
+        
+        .probability-fill {
+            flex: 1;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            margin: 0 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .probability-fill .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .probability-fill.max .fill {
+            background: linear-gradient(90deg, #27ae60, #219a52);
+        }
+        
+        .probability-value {
+            width: 50px;
+            text-align: right;
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MNIST Neural Network Trainer</h1>
+            <p>Train a feedforward neural network to classify handwritten digits</p>
+        </div>
+        
+        <div class="content">
+            <!-- Information Notice -->
+            <div class="info-notice">
+                <span class="icon">💡</span>
+                <strong>How it works:</strong> Train your neural network, then test it on individual images to see predictions in real-time!
+            </div>
+            
+            <!-- Status Panel -->
+            <div class="status-panel" id="statusPanel">
+                <div id="statusMessage"></div>
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            
+            <!-- Dataset and Model Information -->
+            <div class="info-section">
+                <h4>Dataset Information</h4>
+                <div class="info-grid" id="datasetInfo">
+                    <!-- Dataset info will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Training Controls -->
+            <div class="controls">
+                <div class="control-panel">
+                    <h3>Training Parameters</h3>
+                    <div class="form-group">
+                        <label for="epochs">Number of Epochs:</label>
+                        <input type="number" id="epochs" value="10" min="1" max="15">
+                    </div>
+                    <div class="form-group">
+                        <label for="batchSize">Batch Size:</label>
+                        <input type="number" id="batchSize" value="32" min="16" max="512" step="16">
+                    </div>
+                    <button class="btn" id="trainButton" onclick="startTraining()">
+                        Start Training
+                    </button>
+                    <button class="btn btn-stop" id="stopButton" onclick="stopTraining()" style="display: none;">
+                        Stop Training
+                    </button>
+                </div>
+                
+                <div class="control-panel">
+                    <h3>Model Architecture</h3>
+                    <div id="modelInfo">
+                        <p>Loading model information...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Training Charts -->
+            <div class="charts-container" id="chartsContainer" style="display: none;">
+                <div class="chart-panel">
+                    <h4>Training & Validation Loss</h4>
+                    <div class="chart-container">
+                        <canvas id="lossChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-panel">
+                    <h4>Training & Validation Accuracy</h4>
+                    <div class="chart-container">
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Test Section -->
+            <div class="test-section placeholder" id="testSection">
+                <!-- Placeholder Content -->
+                <div class="test-placeholder" id="testPlaceholder">
+                    <div class="icon">🧪</div>
+                    <h4>Model Testing Available After Training</h4>
+                    <p>Complete training to test your neural network on individual images and see real-time predictions!</p>
+                </div>
+                
+                <!-- Actual Test Content (hidden initially) -->
+                <div id="testContent" style="display: none;">
+                    <h3>🧪 Test Your Trained Model</h3>
+                    <p>Select test images to see how your trained neural network performs on completely unseen data!</p>
+                    
+                    <div class="test-controls">
+                        <button class="btn" onclick="loadRandomTestImage()">
+                            Random Test Image
+                        </button>
+                        <button class="btn" onclick="predictCurrentImage()" id="predictButton" disabled>
+                            Predict Label
+                        </button>
+                    </div>
+                
+                <div class="test-image-container" id="testImageContainer" style="display: none;">
+                    <div class="test-image-display">
+                        <img id="testImage" alt="Test image">
+                        <div>
+                            <strong>True Label: <span id="trueLabel">-</span></strong><br>
+                            <small>Test Image Index: <span id="testImageIndex">-</span></small>
+                        </div>
+                    </div>
+                    
+                    <div class="test-results" id="testResults" style="display: none;">
+                        <h4>Prediction Results</h4>
+                        <div class="prediction-result" id="predictionResult">
+                            <!-- Results will be shown here -->
+                        </div>
+                        
+                        <div class="probabilities">
+                            <h5>Class Probabilities:</h5>
+                            <div id="probabilityBars">
+                                <!-- Probability bars will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- End testContent -->
+            </div> <!-- End testSection -->
+        </div>
+    </div>
+
+    <script>
+        let lossChart = null;
+        let accuracyChart = null;
+        let trainingInterval = null;
+        let isTraining = false;
+        let currentTestImage = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDatasetInfo();
+            await loadModelInfo();
+            updateStatus('Ready to start training!', 'ready');
+        });
+
+        async function loadDatasetInfo() {
+            try {
+                const response = await fetch('/api/dataset/info');
+                const data = await response.json();
+                
+                const infoGrid = document.getElementById('datasetInfo');
+                infoGrid.innerHTML = `
+                    <div class="info-item">
+                        <span class="value">${data.training_samples.toLocaleString()}</span>
+                        <div class="label">Training Samples</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="value">${data.validation_samples.toLocaleString()}</span>
+                        <div class="label">Validation Samples</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="value">${data.test_samples.toLocaleString()}</span>
+                        <div class="label">Test Samples</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="value">${data.input_shape[0]}</span>
+                        <div class="label">Input Features</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="value">${data.num_classes}</span>
+                        <div class="label">Classes</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading dataset info:', error);
+            }
+        }
+
+        async function loadModelInfo() {
+            try {
+                const response = await fetch('/api/model/info');
+                const data = await response.json();
+                
+                const modelInfo = document.getElementById('modelInfo');
+                modelInfo.innerHTML = `
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="value">${data.total_parameters.toLocaleString()}</span>
+                            <div class="label">Total Parameters</div>
+                        </div>
+                        <div class="info-item">
+                            <span class="value">${data.layers.length}</span>
+                            <div class="label">Layers</div>
+                        </div>
+                    </div>
+                    <div class="model-summary">${data.model_summary}</div>
+                `;
+            } catch (error) {
+                console.error('Error loading model info:', error);
+            }
+        }
+
+        async function startTraining() {
+            if (isTraining) return;
+            
+            const epochs = parseInt(document.getElementById('epochs').value);
+            const batchSize = parseInt(document.getElementById('batchSize').value);
+            
+            try {
+                updateStatus('Starting training...', 'training');
+                document.getElementById('trainButton').disabled = true;
+                document.getElementById('trainButton').style.display = 'none';
+                document.getElementById('stopButton').style.display = 'block';
+                
+                const response = await fetch('/api/training/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        epochs: epochs,
+                        batch_size: batchSize
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to start training');
+                }
+                
+                isTraining = true;
+                initializeCharts();
+                document.getElementById('chartsContainer').style.display = 'grid';
+                document.getElementById('progressBar').style.display = 'block';
+                
+                // Start polling for updates
+                startTrainingUpdates();
+                
+            } catch (error) {
+                console.error('Error starting training:', error);
+                updateStatus('Error starting training: ' + error.message, 'error');
+                resetTrainingButtons();
+            }
+        }
+
+        async function stopTraining() {
+            if (!isTraining) return;
+            
+            try {
+                updateStatus('Stopping training...', 'training');
+                document.getElementById('stopButton').disabled = true;
+                
+                const response = await fetch('/api/training/stop', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to stop training');
+                }
+                
+                // The training will stop on the next epoch
+                // Status updates will handle the UI changes
+                
+            } catch (error) {
+                console.error('Error stopping training:', error);
+                updateStatus('Error stopping training: ' + error.message, 'error');
+                document.getElementById('stopButton').disabled = false;
+            }
+        }
+
+        function resetTrainingButtons() {
+            document.getElementById('trainButton').disabled = false;
+            document.getElementById('trainButton').style.display = 'block';
+            document.getElementById('stopButton').style.display = 'none';
+            document.getElementById('stopButton').disabled = false;
+        }
+
+        function startTrainingUpdates() {
+            trainingInterval = setInterval(async () => {
+                try {
+                    // Get training status
+                    const statusResponse = await fetch('/api/training/status');
+                    const status = await statusResponse.json();
+                    
+                    if (status.error) {
+                        updateStatus('Training error: ' + status.error, 'error');
+                        stopTrainingUpdates();
+                        return;
+                    }
+                    
+                    // Update progress
+                    if (status.is_training) {
+                        const progress = (status.current_epoch / status.total_epochs) * 100;
+                        document.getElementById('progressFill').style.width = progress + '%';
+                        
+                        if (status.stop_requested) {
+                            updateStatus(`Stopping training... Finishing epoch ${status.current_epoch}/${status.total_epochs}`, 'training');
+                        } else {
+                            updateStatus(`Training in progress... Epoch ${status.current_epoch}/${status.total_epochs}`, 'training');
+                        }
+                    } else {
+                        if (status.stop_requested) {
+                            updateStatus('Training stopped by user', 'ready');
+                        } else {
+                            updateStatus('Training completed!', 'ready');
+                        }
+                        document.getElementById('progressFill').style.width = '100%';
+                        stopTrainingUpdates();
+                        showTestSection();
+                    }
+                    
+                    // Get and update training history
+                    const historyResponse = await fetch('/api/training/history');
+                    const history = await historyResponse.json();
+                    
+                    if (history.epoch.length > 0) {
+                        updateCharts(history);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error updating training status:', error);
+                }
+            }, 1000); // Update every second
+        }
+
+        function stopTrainingUpdates() {
+            if (trainingInterval) {
+                clearInterval(trainingInterval);
+                trainingInterval = null;
+            }
+            isTraining = false;
+            resetTrainingButtons();
+        }
+
+        function initializeCharts() {
+            const lossCtx = document.getElementById('lossChart').getContext('2d');
+            const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+            
+            // Destroy existing charts if they exist
+            if (lossChart) lossChart.destroy();
+            if (accuracyChart) accuracyChart.destroy();
+            
+            lossChart = new Chart(lossCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Training Loss',
+                            data: [],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Validation Loss',
+                            data: [],
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 2,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Loss'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Epoch'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            
+            accuracyChart = new Chart(accuracyCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Training Accuracy',
+                            data: [],
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Validation Accuracy',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'Accuracy'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Epoch'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(history) {
+            if (lossChart && history.epoch.length > 0) {
+                lossChart.data.labels = history.epoch;
+                lossChart.data.datasets[0].data = history.loss;
+                lossChart.data.datasets[1].data = history.val_loss;
+                lossChart.update('none'); // No animation for real-time updates
+            }
+            
+            if (accuracyChart && history.epoch.length > 0) {
+                accuracyChart.data.labels = history.epoch;
+                accuracyChart.data.datasets[0].data = history.accuracy;
+                accuracyChart.data.datasets[1].data = history.val_accuracy;
+                accuracyChart.update('none'); // No animation for real-time updates
+            }
+        }
+
+        function updateStatus(message, type = 'ready') {
+            const statusPanel = document.getElementById('statusPanel');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            statusMessage.innerHTML = message;
+            statusPanel.className = `status-panel show ${type}`;
+        }
+
+        function showTestSection() {
+            const testSection = document.getElementById('testSection');
+            const testPlaceholder = document.getElementById('testPlaceholder');
+            const testContent = document.getElementById('testContent');
+            
+            // Hide placeholder and show actual content
+            testPlaceholder.style.display = 'none';
+            testContent.style.display = 'block';
+            
+            // Update section styling
+            testSection.classList.remove('placeholder');
+            testSection.classList.add('show');
+        }
+
+        async function loadRandomTestImage() {
+            try {
+                updateStatus('Loading random test image...', 'training');
+                
+                const response = await fetch('/api/test/random');
+                if (!response.ok) {
+                    throw new Error('Failed to load test image');
+                }
+                
+                const data = await response.json();
+                displayTestImage(data);
+                updateStatus('Test image loaded. Click "Predict Label" to see model prediction.', 'ready');
+                
+            } catch (error) {
+                console.error('Error loading test image:', error);
+                updateStatus('Error loading test image', 'error');
+            }
+        }
+
+        function displayTestImage(imageData) {
+            const imgElement = document.getElementById('testImage');
+            const trueLabelElement = document.getElementById('trueLabel');
+            const indexElement = document.getElementById('testImageIndex');
+            
+            imgElement.src = imageData.image;
+            trueLabelElement.textContent = imageData.true_label;
+            indexElement.textContent = imageData.index.toLocaleString();
+            
+            currentTestImage = imageData;
+            document.getElementById('testImageContainer').style.display = 'flex';
+            document.getElementById('testResults').style.display = 'none';
+            document.getElementById('predictButton').disabled = false;
+        }
+
+        async function predictCurrentImage() {
+            if (!currentTestImage) return;
+            
+            try {
+                updateStatus('Making prediction...', 'training');
+                document.getElementById('predictButton').disabled = true;
+                
+                const response = await fetch(`/api/test/predict/${currentTestImage.index}`);
+                if (!response.ok) {
+                    throw new Error('Failed to make prediction');
+                }
+                
+                const data = await response.json();
+                displayPredictionResults(data);
+                updateStatus('Prediction complete!', 'ready');
+                
+            } catch (error) {
+                console.error('Error making prediction:', error);
+                updateStatus('Error making prediction: ' + error.message, 'error');
+            } finally {
+                document.getElementById('predictButton').disabled = false;
+            }
+        }
+
+        function displayPredictionResults(predictionData) {
+            const resultDiv = document.getElementById('predictionResult');
+            const probabilityBars = document.getElementById('probabilityBars');
+            
+            // Show prediction result
+            const isCorrect = predictionData.correct;
+            const resultClass = isCorrect ? 'correct' : 'incorrect';
+            const resultIcon = isCorrect ? '✅' : '❌';
+            
+            resultDiv.className = `prediction-result ${resultClass}`;
+            resultDiv.innerHTML = `
+                ${resultIcon} <strong>Prediction: ${predictionData.predicted_label}</strong><br>
+                True Label: ${predictionData.true_label}<br>
+                Confidence: ${(predictionData.confidence * 100).toFixed(1)}%<br>
+                ${isCorrect ? 'Correct!' : 'Incorrect'}
+            `;
+            
+            // Show probability bars
+            probabilityBars.innerHTML = '';
+            const sortedProbs = Object.entries(predictionData.all_probabilities)
+                .sort((a, b) => b[1] - a[1]);
+            
+            sortedProbs.forEach(([digit, prob]) => {
+                const isMax = digit === predictionData.predicted_label.toString();
+                const barDiv = document.createElement('div');
+                barDiv.className = 'probability-bar';
+                
+                barDiv.innerHTML = `
+                    <div class="probability-label">${digit}:</div>
+                    <div class="probability-fill ${isMax ? 'max' : ''}">
+                        <div class="fill" style="width: ${prob * 100}%"></div>
+                    </div>
+                    <div class="probability-value">${(prob * 100).toFixed(1)}%</div>
+                `;
+                
+                probabilityBars.appendChild(barDiv);
+            });
+            
+            document.getElementById('testResults').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
