@@ -1,21 +1,22 @@
-# MNIST Neural Network Trainer
+# MNIST Neural Network - Pre-trained Model Deployment
 
-An interactive web application for training feedforward neural networks on the MNIST handwritten digit dataset. Students can start training with a button click and watch real-time plots of loss and accuracy during training.
+An interactive web application showcasing a pre-trained feedforward neural network for MNIST handwritten digit classification. This deployment-optimized version uses a locally trained model with static training visualizations for efficient cloud hosting.
 
 ## 🚀 **Live Demo Deployment (Railway)**
 
-This app is optimized for Railway deployment with the following features:
-- ✅ **Smart port handling**: Uses Railway's assigned PORT environment variable
-- ✅ **Resource optimized**: Limited to 15 epochs for efficient cloud usage
-- ✅ **Fast startup**: ~10-15 seconds for MNIST dataset loading
-- ✅ **Educational ready**: Perfect for classroom use
+This app is perfectly optimized for Railway deployment with the following features:
+- ✅ **Pre-trained Model**: No training required - uses a high-performance pre-trained model (98.16% test accuracy)
+- ✅ **Static Assets**: Training plots and model info generated locally for fast loading
+- ✅ **Memory Efficient**: Minimal resource usage with pre-saved test data
+- ✅ **Instant Testing**: Immediate predictions on handwritten digits
+- ✅ **Educational Ready**: Perfect for demonstrating neural network capabilities
 
 ### **Quick Railway Deployment:**
 
 1. **Push to GitHub** (if not already done):
    ```bash
    git add .
-   git commit -m "Ready for Railway deployment"
+   git commit -m "Ready for Railway deployment with pre-trained model"
    git push origin main
    ```
 
@@ -28,26 +29,37 @@ This app is optimized for Railway deployment with the following features:
 
 3. **Automatic Setup**:
    - Railway reads `Procfile` and `requirements.txt`
-   - Installs all dependencies automatically
-   - Assigns a public URL (e.g., `https://mnist-trainer-production.up.railway.app`)
+   - Loads pre-trained model (`static/mnist_model.h5`)
+   - Serves static training plots and assets
+   - Assigns a public URL (e.g., `https://mnist-classifier-production.up.railway.app`)
 
 4. **Share with Students**:
    - Copy the Railway URL and share with your class
-   - Students can access immediately - no setup required!
+   - Students can immediately test the neural network on handwritten digits
+   - Perfect for demonstrating machine learning concepts!
 
 ## Features
 
-- **Interactive Training**: Start neural network training with a simple button click
-- **Real-time Visualization**: 
-  - Training and validation loss plots updated in real-time
-  - Training and validation accuracy plots updated in real-time
-  - Progress tracking with epoch counters
-- **Model Testing**: After training, test individual images and see predictions
+- **Pre-trained Neural Network**: 
+  - 98.16% test accuracy on MNIST dataset
+  - 3-layer feedforward architecture (128→64→10 neurons)
+  - 109,386 trainable parameters
+- **Static Training Visualizations**: 
+  - Training and validation loss/accuracy plots (generated locally)
+  - Model architecture information
+  - Training history and performance metrics
+- **Interactive Testing**: 
+  - Test the model on 2,000 handwritten digit images
+  - Real-time predictions with confidence scores
+  - Probability distributions for all 10 digit classes
 - **Educational Interface**: 
-  - Model architecture display
-  - Dataset information (51K train, 9K validation, 10K test samples)
-  - Training parameter controls (epochs: 1-15, batch size: 16-512)
-- **Modern UI**: Clean, responsive design with real-time charts using Chart.js
+  - Model summary and architecture details
+  - Test accuracy and loss information
+  - Clean, responsive design optimized for learning
+- **Deployment Optimized**: 
+  - Fast startup (no training required)
+  - Minimal memory footprint
+  - Static asset serving for training plots
 
 ## Neural Network Architecture
 
