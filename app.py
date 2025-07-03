@@ -65,49 +65,58 @@ def load_pretrained_model():
 def load_test_data():
     """Load test data from static directory"""
     global test_data
-    try:
-        test_data_path = os.path.join('static', 'test_data.json')
-        print(f"Looking for test data at: {test_data_path}")
-        print(f"Current working directory: {os.getcwd()}")
-        print(f"Directory contents: {os.listdir('.')}")
-        
-        if os.path.exists('static'):
-            print(f"Static directory exists. Contents: {os.listdir('static')}")
-        else:
-            print("Static directory does not exist!")
-            return False
+    
+    # Try loading the full test data first, then fall back to small version
+    test_files = [
+        ('static/test_data.json', 'full'),
+        ('static/test_data_small.json', 'small (200 images)')
+    ]
+    
+    for test_data_path, description in test_files:
+        try:
+            print(f"Trying to load {description} test data from: {test_data_path}")
+            print(f"Current working directory: {os.getcwd()}")
             
-        if not os.path.exists(test_data_path):
-            print(f"Error: Test data file not found at {test_data_path}")
-            return False
+            if os.path.exists('static'):
+                print(f"Static directory exists. Contents: {os.listdir('static')}")
+            else:
+                print("Static directory does not exist!")
+                continue
+                
+            if not os.path.exists(test_data_path):
+                print(f"Test data file not found at {test_data_path}")
+                continue
+                
+            file_size = os.path.getsize(test_data_path)
+            print(f"Test data file found. Size: {file_size} bytes ({file_size/(1024*1024):.1f} MB)")
             
-        file_size = os.path.getsize(test_data_path)
-        print(f"Test data file found. Size: {file_size} bytes")
-        
-        if file_size == 0:
-            print("Error: Test data file is empty!")
-            return False
+            if file_size == 0:
+                print("Error: Test data file is empty!")
+                continue
+                
+            print(f"Loading {description} test data...")
+            with open(test_data_path, 'r') as f:
+                test_data = json.load(f)
             
-        print("Loading test data...")
-        with open(test_data_path, 'r') as f:
-            test_data = json.load(f)
-        
-        print(f"Test data JSON loaded. Keys: {list(test_data.keys())}")
-        
-        if 'images' in test_data:
-            print(f"Test data loaded successfully! {len(test_data['images'])} test images available.")
-        else:
-            print(f"Error: Test data missing 'images' key. Available keys: {list(test_data.keys())}")
-            return False
+            print(f"Test data JSON loaded. Keys: {list(test_data.keys())}")
             
-        return True
-    except json.JSONDecodeError as e:
-        print(f"JSON decode error loading test data: {e}")
-        return False
-    except Exception as e:
-        print(f"Error loading test data: {e}")
-        print(f"Error type: {type(e).__name__}")
-        return False
+            if 'images' in test_data:
+                print(f"✅ {description.capitalize()} test data loaded successfully! {len(test_data['images'])} test images available.")
+                return True
+            else:
+                print(f"Error: Test data missing 'images' key. Available keys: {list(test_data.keys())}")
+                continue
+                
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error loading {description} test data: {e}")
+            continue
+        except Exception as e:
+            print(f"Error loading {description} test data: {e}")
+            print(f"Error type: {type(e).__name__}")
+            continue
+    
+    print("❌ Failed to load any test data files")
+    return False
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
