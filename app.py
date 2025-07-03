@@ -62,50 +62,130 @@ def load_pretrained_model():
         print(f"Error loading pre-trained model: {e}")
         return False
 
-def generate_dummy_test_data():
-    """Generate minimal dummy test data if files are not available"""
-    print("🔧 Generating dummy test data as fallback...")
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Serve static files including the training plot"""
+    return send_from_directory('static', filename)
+
+@app.route('/')
+def home():
+    """Serve the main HTML page"""
+    try:
+        with open('index.html', 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return jsonify({
+            "error": "index.html not found",
+            "message": "Make sure index.html is in the same directory as app.py"
+        }), 404
+
+@app.route('/api/debug/test-data-loading')
+def debug_test_data_loading():
+    """Debug endpoint to test the test data loading process"""
+    debug_info = {
+        "current_test_data_status": test_data is not None,
+        "loading_attempts": []
+    }
     
-    # Create 10 simple test images (one for each digit)
+    # Try loading test data files and record the process
+    test_files = [
+        ('static/test_data.json', 'full'),
+        ('static/test_data_small.json', 'small (200 images)')
+    ]
+    
+    for test_data_path, description in test_files:
+        attempt_info = {
+            "file": test_data_path,
+            "description": description,
+            "exists": os.path.exists(test_data_path)
+        }
+        
+        if attempt_info["exists"]:
+            try:
+                file_size = os.path.getsize(test_data_path)
+                attempt_info["size_bytes"] = file_size
+                attempt_info["size_mb"] = round(file_size / (1024 * 1024), 2)
+                
+                # Try to load and parse
+                with open(test_data_path, 'r') as f:
+                    data = json.load(f)
+                
+                attempt_info["json_valid"] = True
+                attempt_info["keys"] = list(data.keys())
+                
+                if 'images' in data:
+                    attempt_info["num_images"] = len(data['images'])
+                    attempt_info["loadable"] = True
+                else:
+                    attempt_info["loadable"] = False
+                    attempt_info["error"] = "Missing 'images' key"
+                    
+            except Exception as e:
+                attempt_info["loadable"] = False
+                attempt_info["error"] = str(e)
+        else:
+            attempt_info["loadable"] = False
+            attempt_info["error"] = "File not found"
+            
+        debug_info["loading_attempts"].append(attempt_info)
+    
+    # Check if we can generate dummy data
+    debug_info["dummy_data_generation"] = {
+        "available": True,
+        "description": "Can generate 10 dummy MNIST-like images in memory"
+    }
+    
+    return jsonify(debug_info)
+
+def generate_dummy_test_data():
+    """Generate dummy test data in memory as a last resort"""
+    print("🚨 Generating dummy test data as fallback...")
+    
     dummy_images = []
     dummy_labels = []
     dummy_arrays = []
     
-    for digit in range(10):
-        # Create a simple 28x28 array with the digit pattern
-        # This is just a placeholder - not real MNIST data
+    for i in range(10):  # Generate 10 dummy images (one for each digit)
+        # Create a simple pattern for each digit
         img_array = np.zeros((28, 28), dtype=np.float32)
         
-        # Add some simple pattern to represent the digit
-        if digit == 0:  # Circle-like pattern for 0
-            img_array[10:18, 10:18] = 0.8
-            img_array[12:16, 12:16] = 0.0
-        elif digit == 1:  # Vertical line for 1
-            img_array[5:23, 13:15] = 0.8
-        else:  # Simple pattern for other digits
-            img_array[5+digit:15+digit, 5:15] = 0.8
+        # Create simple patterns for each digit
+        if i == 0:  # Circle for 0
+            center = 14
+            for x in range(28):
+                for y in range(28):
+                    dist = np.sqrt((x - center)**2 + (y - center)**2)
+                    if 8 <= dist <= 12:
+                        img_array[x, y] = 1.0
+        elif i == 1:  # Vertical line for 1
+            img_array[6:22, 13:15] = 1.0
+        elif i == 2:  # Horizontal lines for 2
+            img_array[8:10, 6:22] = 1.0
+            img_array[13:15, 6:22] = 1.0
+            img_array[18:20, 6:22] = 1.0
+        else:  # Simple patterns for other digits
+            # Create a simple rectangular pattern
+            start_x = 6 + (i % 3) * 2
+            start_y = 6 + (i % 3) * 2
+            img_array[start_x:start_x + 16, start_y:start_y + 16] = 0.3
+            img_array[start_x + 2:start_x + 14, start_y + 2:start_y + 14] = 0.7
+            img_array[start_x + 4:start_x + 12, start_y + 4:start_y + 12] = 1.0
         
         # Convert to base64 image
-        img_base64 = array_to_base64_image(img_array)
-        dummy_images.append(img_base64)
-        dummy_labels.append(digit)
+        image_base64 = array_to_base64_image(img_array)
         
-        # Flatten for predictions
-        flat_array = img_array.flatten().tolist()
-        dummy_arrays.append(flat_array)
+        dummy_images.append(image_base64)
+        dummy_labels.append(i)
+        dummy_arrays.append(img_array.flatten().tolist())  # Flatten for model input
     
-    # Create the test data structure
-    dummy_data = {
+    return {
         'images': dummy_images,
         'labels': dummy_labels,
         'image_arrays': dummy_arrays
     }
-    
-    print(f"✅ Generated {len(dummy_images)} dummy test images")
-    return dummy_data
 
 def load_test_data():
-    """Load test data from static directory with ultimate fallback"""
+    """Load test data from static directory with ultimate fallback to dummy data"""
     global test_data
     
     # Try loading the full test data first, then fall back to small version
@@ -157,143 +237,15 @@ def load_test_data():
             print(f"Error type: {type(e).__name__}")
             continue
     
-    # If all file loading failed, generate dummy data
-    print("❌ Failed to load any test data files")
-    print("🔧 Falling back to generated dummy test data...")
-    
+    # Ultimate fallback: generate dummy test data
+    print("❌ Failed to load any test data files - generating dummy data as fallback")
     try:
         test_data = generate_dummy_test_data()
-        print("✅ Dummy test data generated successfully!")
+        print(f"✅ Generated {len(test_data['images'])} dummy test images as fallback!")
         return True
     except Exception as e:
         print(f"❌ Failed to generate dummy test data: {e}")
         return False
-
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    """Serve static files including the training plot"""
-    return send_from_directory('static', filename)
-
-@app.route('/')
-def home():
-    """Serve the main HTML page"""
-    try:
-        with open('index.html', 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        return jsonify({
-            "error": "index.html not found",
-            "message": "Make sure index.html is in the same directory as app.py"
-        }), 404
-
-@app.route('/api/debug/test-data-loading')
-def debug_test_data_loading():
-    """Debug endpoint to test data loading step by step"""
-    debug_steps = []
-    
-    try:
-        debug_steps.append(f"Working directory: {os.getcwd()}")
-        debug_steps.append(f"Directory contents: {os.listdir('.')}")
-        
-        # Check static directory
-        if os.path.exists('static'):
-            static_contents = os.listdir('static')
-            debug_steps.append(f"Static directory exists. Contents: {static_contents}")
-            
-            # Check each test data file
-            test_files = ['test_data.json', 'test_data_small.json']
-            for filename in test_files:
-                filepath = os.path.join('static', filename)
-                if os.path.exists(filepath):
-                    size = os.path.getsize(filepath)
-                    debug_steps.append(f"{filename}: EXISTS, size={size} bytes")
-                    
-                    # Try to read just the first few characters
-                    try:
-                        with open(filepath, 'r') as f:
-                            first_chars = f.read(100)
-                            debug_steps.append(f"{filename} first 100 chars: {repr(first_chars)}")
-                    except Exception as e:
-                        debug_steps.append(f"{filename} read error: {str(e)}")
-                else:
-                    debug_steps.append(f"{filename}: NOT FOUND")
-        else:
-            debug_steps.append("Static directory does not exist!")
-        
-        # Try loading each file manually
-        test_files = [
-            ('static/test_data.json', 'full'),
-            ('static/test_data_small.json', 'small')
-        ]
-        
-        for filepath, description in test_files:
-            try:
-                debug_steps.append(f"Attempting to load {description} from {filepath}")
-                
-                if not os.path.exists(filepath):
-                    debug_steps.append(f"  - File not found: {filepath}")
-                    continue
-                
-                with open(filepath, 'r') as f:
-                    data = json.load(f)
-                    
-                keys = list(data.keys())
-                debug_steps.append(f"  - SUCCESS: {description} loaded with keys: {keys}")
-                
-                if 'images' in data:
-                    debug_steps.append(f"  - Images count: {len(data['images'])}")
-                    return jsonify({
-                        "status": "SUCCESS", 
-                        "loaded_file": description,
-                        "image_count": len(data['images']),
-                        "debug_steps": debug_steps
-                    })
-                else:
-                    debug_steps.append(f"  - ERROR: No 'images' key in {description}")
-                    
-            except json.JSONDecodeError as e:
-                debug_steps.append(f"  - JSON decode error in {description}: {str(e)}")
-            except Exception as e:
-                debug_steps.append(f"  - Error loading {description}: {str(e)}")
-        
-        return jsonify({
-            "status": "FAILED",
-            "error": "No test data files could be loaded",
-            "debug_steps": debug_steps
-        })
-        
-    except Exception as e:
-        debug_steps.append(f"Critical error: {str(e)}")
-        return jsonify({
-            "status": "ERROR",
-            "error": str(e),
-            "debug_steps": debug_steps
-        }), 500
-
-@app.route('/api/debug/filesystem')
-def debug_filesystem():
-    """Debug endpoint to check filesystem status"""
-    try:
-        debug_info = {
-            "working_directory": os.getcwd(),
-            "directory_contents": os.listdir('.'),
-            "static_exists": os.path.exists('static'),
-            "test_data_exists": os.path.exists('static/test_data.json'),
-            "model_exists": os.path.exists('static/mnist_model.h5'),
-        }
-        
-        if os.path.exists('static'):
-            debug_info["static_contents"] = os.listdir('static')
-            
-        if os.path.exists('static/test_data.json'):
-            debug_info["test_data_size"] = os.path.getsize('static/test_data.json')
-            
-        if os.path.exists('static/mnist_model.h5'):
-            debug_info["model_size"] = os.path.getsize('static/mnist_model.h5')
-            
-        return jsonify(debug_info)
-    except Exception as e:
-        return jsonify({"error": f"Debug filesystem error: {str(e)}"}), 500
 
 @app.route('/api')
 def api_info():
