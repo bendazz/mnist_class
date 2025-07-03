@@ -492,6 +492,34 @@ def force_reload_data():
         result["errors"].append(f"Exception during force reload: {str(e)}")
         return jsonify(result), 500
 
+def load_assets_with_retry(max_retries=3):
+    """Load assets with retry logic for Railway deployment reliability"""
+    import time
+    
+    for attempt in range(max_retries):
+        print(f"Asset loading attempt {attempt + 1}/{max_retries}")
+        
+        # Load pre-trained model
+        model_loaded = load_pretrained_model()
+        
+        # Load test data with retry logic
+        test_data_loaded = load_test_data()
+        
+        print(f"Attempt {attempt + 1} results:")
+        print(f"  - Model loaded: {model_loaded}")
+        print(f"  - Test data loaded: {test_data_loaded}")
+        
+        if model_loaded and test_data_loaded:
+            print("✅ All assets loaded successfully!")
+            return True, True
+        elif attempt < max_retries - 1:
+            print(f"⚠️ Retrying in 2 seconds... (attempt {attempt + 1}/{max_retries})")
+            time.sleep(2)
+        else:
+            print("⚠️ Max retries reached, starting server with available assets")
+            
+    return model_loaded, test_data_loaded
+
 if __name__ == '__main__':
     print("Starting MNIST Neural Network Deployment Server...")
     
@@ -500,24 +528,25 @@ if __name__ == '__main__':
     print(f"Server will run on port: {port}")
     print(f"Environment PORT variable: {os.environ.get('PORT', 'Not set')}")
     
-    # Load pre-trained model and test data on startup
-    model_loaded = load_pretrained_model()
-    test_data_loaded = load_test_data()
+    # Load assets with retry logic for Railway deployment reliability
+    model_loaded, test_data_loaded = load_assets_with_retry(max_retries=3)
     
     # Always start the server, even if some assets fail to load
     # This allows debugging endpoints to work
-    print(f"Asset loading status:")
+    print(f"Final asset loading status:")
     print(f"  - Model loaded: {model_loaded}")
     print(f"  - Test data loaded: {test_data_loaded}")
     
     if model_loaded and test_data_loaded:
         print("✅ All assets loaded successfully! Server ready for full functionality!")
     elif model_loaded:
-        print("⚠️ Model loaded but test data failed - starting server with limited functionality")
+        print("⚠️ Model loaded but test data failed - server has limited functionality")
+        print("💡 Tip: Use the 'Force Reload Data' button in the web interface to retry loading")
     elif test_data_loaded:
-        print("⚠️ Test data loaded but model failed - starting server with limited functionality")
+        print("⚠️ Test data loaded but model failed - server has limited functionality")
     else:
-        print("❌ Both model and test data failed to load - starting server for debugging only")
+        print("❌ Both model and test data failed to load - server running for debugging only")
+        print("💡 Tip: Use the debugging buttons in the web interface to troubleshoot")
     
     print(f"Starting Flask app on 0.0.0.0:{port}")
     app.run(debug=False, host='0.0.0.0', port=port)

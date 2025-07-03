@@ -368,6 +368,10 @@
                 <h3>🧪 Test Your Pre-trained Model</h3>
                 <p>Select test images to see how the pre-trained neural network performs on unseen handwritten digits!</p>
                 
+                <div style="background: #e8f5e8; border: 1px solid #27ae60; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 0.9em;">
+                    <strong>💡 Having issues?</strong> If the app doesn't respond as expected, try the "Troubleshoot" button to refresh the data.
+                </div>
+                
                 <div class="test-controls">
                     <button class="btn" onclick="loadRandomTestImage()">
                         📷 Random Test Image
@@ -375,20 +379,8 @@
                     <button class="btn" onclick="predictCurrentImage()" id="predictButton" disabled>
                         🔮 Predict Label
                     </button>
-                    <button class="btn" onclick="console.log('Test button clicked!'); alert('JavaScript is working!');" style="background-color: #28a745;">
-                        🧪 Test JS
-                    </button>
-                    <button class="btn" onclick="testApiDirectly()" style="background-color: #3498db;">
-                        🔧 Test API
-                    </button>
-                    <button class="btn" onclick="debugFilesystem()" style="background-color: #e67e22;">
-                        📁 Debug Filesystem
-                    </button>
-                    <button class="btn" onclick="debugTestDataLoading()" style="background-color: #9b59b6;">
-                        🔍 Debug Test Data
-                    </button>
-                    <button class="btn" onclick="forceReloadData()" style="background-color: #f39c12;">
-                        🔄 Force Reload Data
+                    <button class="btn" onclick="forceReloadData()" style="background-color: #f39c12; font-size: 0.9em;" title="If you encounter loading issues, this button can help resolve them">
+                        🔄 Troubleshoot
                     </button>
                 </div>
             
@@ -561,147 +553,10 @@
             }
         }
 
-        async function testApiDirectly() {
-            console.log('=== API Test Started ===');
-            try {
-                // Test basic API info
-                console.log('Testing /api endpoint...');
-                const apiResponse = await fetch('/api');
-                console.log('/api status:', apiResponse.status);
-                const apiData = await apiResponse.json();
-                console.log('/api data:', apiData);
-                
-                // Test dataset info
-                console.log('Testing /api/dataset/info endpoint...');
-                const datasetResponse = await fetch('/api/dataset/info');
-                console.log('/api/dataset/info status:', datasetResponse.status);
-                const datasetData = await datasetResponse.json();
-                console.log('/api/dataset/info data:', datasetData);
-                
-                // Test random image
-                console.log('Testing /api/test/random endpoint...');
-                const testResponse = await fetch('/api/test/random');
-                console.log('/api/test/random status:', testResponse.status);
-                console.log('/api/test/random headers:', [...testResponse.headers.entries()]);
-                
-                if (testResponse.ok) {
-                    const testData = await testResponse.json();
-                    console.log('/api/test/random data keys:', Object.keys(testData));
-                    console.log('/api/test/random sample:', {
-                        index: testData.index,
-                        true_label: testData.true_label,
-                        image_length: testData.image ? testData.image.length : 'no image',
-                        image_prefix: testData.image ? testData.image.substring(0, 50) : 'no image'
-                    });
-                    alert('API Test Successful! Check console for details.');
-                } else {
-                    const errorText = await testResponse.text();
-                    console.error('/api/test/random error:', errorText);
-                    alert('API Test Failed: ' + errorText);
-                }
-                
-            } catch (error) {
-                console.error('API Test Error:', error);
-                alert('API Test Error: ' + error.message);
-            }
-            console.log('=== API Test Completed ===');
-        }
-
-        async function debugFilesystem() {
-            console.log('=== Filesystem Debug Started ===');
-            try {
-                const response = await fetch('/api/debug/filesystem');
-                console.log('Filesystem debug status:', response.status);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Filesystem debug data:', data);
-                    
-                    let message = 'Filesystem Debug Results:\n\n';
-                    message += `Working Directory: ${data.working_directory}\n`;
-                    message += `Static Directory Exists: ${data.static_exists}\n`;
-                    message += `Test Data Exists: ${data.test_data_exists}\n`;
-                    message += `Test Data Small Exists: ${data.test_data_small_exists}\n`;
-                    message += `Model Exists: ${data.model_exists}\n\n`;
-                    
-                    if (data.static_contents) {
-                        message += `Static Directory Contents: ${data.static_contents.join(', ')}\n`;
-                    }
-                    
-                    if (data.test_data_size) {
-                        message += `Test Data Size: ${(data.test_data_size / (1024*1024)).toFixed(2)} MB\n`;
-                    }
-                    
-                    if (data.test_data_small_size) {
-                        message += `Test Data Small Size: ${(data.test_data_small_size / (1024*1024)).toFixed(2)} MB\n`;
-                    }
-                    
-                    alert(message);
-                } else {
-                    const errorText = await response.text();
-                    console.error('Filesystem debug error:', errorText);
-                    alert('Filesystem Debug Failed: ' + errorText);
-                }
-            } catch (error) {
-                console.error('Filesystem Debug Error:', error);
-                alert('Filesystem Debug Error: ' + error.message);
-            }
-            console.log('=== Filesystem Debug Completed ===');
-        }
-
-        async function debugTestDataLoading() {
-            console.log('=== Test Data Loading Debug Started ===');
-            try {
-                const response = await fetch('/api/debug/test-data-loading');
-                console.log('Test data loading debug status:', response.status);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Test data loading debug data:', data);
-                    
-                    let message = 'Test Data Loading Debug Results:\n\n';
-                    message += `Current Test Data Status: ${data.current_test_data_status}\n\n`;
-                    
-                    data.loading_attempts.forEach((attempt, index) => {
-                        message += `Attempt ${index + 1}: ${attempt.description}\n`;
-                        message += `  File: ${attempt.file}\n`;
-                        message += `  Exists: ${attempt.exists}\n`;
-                        if (attempt.exists) {
-                            message += `  Size: ${attempt.size_mb} MB\n`;
-                            message += `  JSON Valid: ${attempt.json_valid}\n`;
-                            message += `  Loadable: ${attempt.loadable}\n`;
-                            if (attempt.num_images) {
-                                message += `  Images: ${attempt.num_images}\n`;
-                            }
-                            if (attempt.error) {
-                                message += `  Error: ${attempt.error}\n`;
-                            }
-                        }
-                        message += '\n';
-                    });
-                    
-                    if (data.dummy_data_generation) {
-                        message += `Dummy Data Generation: ${data.dummy_data_generation.available ? 'Available' : 'Not Available'}\n`;
-                        message += `Description: ${data.dummy_data_generation.description}\n`;
-                    }
-                    
-                    alert(message);
-                } else {
-                    const errorText = await response.text();
-                    console.error('Test data loading debug error:', errorText);
-                    alert('Test Data Loading Debug Failed: ' + errorText);
-                }
-            } catch (error) {
-                console.error('Test Data Loading Debug Error:', error);
-                alert('Test Data Loading Debug Error: ' + error.message);
-            }
-            console.log('=== Test Data Loading Debug Completed ===');
-        }
-
         async function forceReloadData() {
-            console.log('=== Force Reload Data Started ===');
+            console.log('=== Troubleshooting: Reloading Data ===');
             try {
-                updateStatus('Forcing data reload...', 'ready');
+                updateStatus('Troubleshooting: Reloading data...', 'ready');
                 
                 const response = await fetch('/api/debug/force-reload', {
                     method: 'POST'
@@ -712,42 +567,33 @@
                     const data = await response.json();
                     console.log('Force reload data:', data);
                     
-                    let message = 'Force Reload Results:\n\n';
-                    message += `Model Reload: ${data.model_reload_success ? 'Success' : 'Failed'}\n`;
-                    message += `Test Data Reload: ${data.test_data_reload_success ? 'Success' : 'Failed'}\n`;
-                    
-                    if (data.test_data_source) {
-                        message += `Test Data Source: ${data.test_data_source}\n`;
+                    if (data.test_data_reload_success) {
+                        alert(`✅ Troubleshooting successful!\n\nTest Data Source: ${data.test_data_source}\nTest Images Available: ${data.test_images_count}`);
+                        
+                        // Reload the page data
+                        await loadDatasetInfo();
+                        await loadModelInfo();
+                        updateStatus('Data reload complete! Try testing again.', 'ready');
+                    } else {
+                        alert('❌ Troubleshooting failed. Please try refreshing the page.');
+                        updateStatus('Troubleshooting failed', 'error');
                     }
-                    
-                    if (data.test_images_count) {
-                        message += `Test Images Available: ${data.test_images_count}\n`;
-                    }
-                    
-                    if (data.errors && data.errors.length > 0) {
-                        message += `\nErrors:\n${data.errors.join('\n')}\n`;
-                    }
-                    
-                    alert(message);
-                    
-                    // Reload the page data
-                    await loadDatasetInfo();
-                    await loadModelInfo();
-                    updateStatus('Data reload complete!', 'ready');
                     
                 } else {
                     const errorText = await response.text();
                     console.error('Force reload error:', errorText);
-                    alert('Force Reload Failed: ' + errorText);
-                    updateStatus('Force reload failed', 'error');
+                    alert('❌ Troubleshooting failed: ' + errorText);
+                    updateStatus('Troubleshooting failed', 'error');
                 }
             } catch (error) {
                 console.error('Force Reload Error:', error);
-                alert('Force Reload Error: ' + error.message);
-                updateStatus('Force reload error: ' + error.message, 'error');
+                alert('❌ Troubleshooting error: ' + error.message);
+                updateStatus('Troubleshooting error: ' + error.message, 'error');
             }
-            console.log('=== Force Reload Data Completed ===');
+            console.log('=== Troubleshooting Completed ===');
         }
+
+        // ...existing code...
 
         function displayTestImage(imageData) {
             console.log('displayTestImage called with:', imageData);
