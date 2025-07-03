@@ -62,8 +62,50 @@ def load_pretrained_model():
         print(f"Error loading pre-trained model: {e}")
         return False
 
+def generate_dummy_test_data():
+    """Generate minimal dummy test data if files are not available"""
+    print("🔧 Generating dummy test data as fallback...")
+    
+    # Create 10 simple test images (one for each digit)
+    dummy_images = []
+    dummy_labels = []
+    dummy_arrays = []
+    
+    for digit in range(10):
+        # Create a simple 28x28 array with the digit pattern
+        # This is just a placeholder - not real MNIST data
+        img_array = np.zeros((28, 28), dtype=np.float32)
+        
+        # Add some simple pattern to represent the digit
+        if digit == 0:  # Circle-like pattern for 0
+            img_array[10:18, 10:18] = 0.8
+            img_array[12:16, 12:16] = 0.0
+        elif digit == 1:  # Vertical line for 1
+            img_array[5:23, 13:15] = 0.8
+        else:  # Simple pattern for other digits
+            img_array[5+digit:15+digit, 5:15] = 0.8
+        
+        # Convert to base64 image
+        img_base64 = array_to_base64_image(img_array)
+        dummy_images.append(img_base64)
+        dummy_labels.append(digit)
+        
+        # Flatten for predictions
+        flat_array = img_array.flatten().tolist()
+        dummy_arrays.append(flat_array)
+    
+    # Create the test data structure
+    dummy_data = {
+        'images': dummy_images,
+        'labels': dummy_labels,
+        'image_arrays': dummy_arrays
+    }
+    
+    print(f"✅ Generated {len(dummy_images)} dummy test images")
+    return dummy_data
+
 def load_test_data():
-    """Load test data from static directory"""
+    """Load test data from static directory with ultimate fallback"""
     global test_data
     
     # Try loading the full test data first, then fall back to small version
@@ -115,8 +157,17 @@ def load_test_data():
             print(f"Error type: {type(e).__name__}")
             continue
     
+    # If all file loading failed, generate dummy data
     print("❌ Failed to load any test data files")
-    return False
+    print("🔧 Falling back to generated dummy test data...")
+    
+    try:
+        test_data = generate_dummy_test_data()
+        print("✅ Dummy test data generated successfully!")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to generate dummy test data: {e}")
+        return False
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -134,6 +185,90 @@ def home():
             "error": "index.html not found",
             "message": "Make sure index.html is in the same directory as app.py"
         }), 404
+
+@app.route('/api/debug/test-data-loading')
+def debug_test_data_loading():
+    """Debug endpoint to test data loading step by step"""
+    debug_steps = []
+    
+    try:
+        debug_steps.append(f"Working directory: {os.getcwd()}")
+        debug_steps.append(f"Directory contents: {os.listdir('.')}")
+        
+        # Check static directory
+        if os.path.exists('static'):
+            static_contents = os.listdir('static')
+            debug_steps.append(f"Static directory exists. Contents: {static_contents}")
+            
+            # Check each test data file
+            test_files = ['test_data.json', 'test_data_small.json']
+            for filename in test_files:
+                filepath = os.path.join('static', filename)
+                if os.path.exists(filepath):
+                    size = os.path.getsize(filepath)
+                    debug_steps.append(f"{filename}: EXISTS, size={size} bytes")
+                    
+                    # Try to read just the first few characters
+                    try:
+                        with open(filepath, 'r') as f:
+                            first_chars = f.read(100)
+                            debug_steps.append(f"{filename} first 100 chars: {repr(first_chars)}")
+                    except Exception as e:
+                        debug_steps.append(f"{filename} read error: {str(e)}")
+                else:
+                    debug_steps.append(f"{filename}: NOT FOUND")
+        else:
+            debug_steps.append("Static directory does not exist!")
+        
+        # Try loading each file manually
+        test_files = [
+            ('static/test_data.json', 'full'),
+            ('static/test_data_small.json', 'small')
+        ]
+        
+        for filepath, description in test_files:
+            try:
+                debug_steps.append(f"Attempting to load {description} from {filepath}")
+                
+                if not os.path.exists(filepath):
+                    debug_steps.append(f"  - File not found: {filepath}")
+                    continue
+                
+                with open(filepath, 'r') as f:
+                    data = json.load(f)
+                    
+                keys = list(data.keys())
+                debug_steps.append(f"  - SUCCESS: {description} loaded with keys: {keys}")
+                
+                if 'images' in data:
+                    debug_steps.append(f"  - Images count: {len(data['images'])}")
+                    return jsonify({
+                        "status": "SUCCESS", 
+                        "loaded_file": description,
+                        "image_count": len(data['images']),
+                        "debug_steps": debug_steps
+                    })
+                else:
+                    debug_steps.append(f"  - ERROR: No 'images' key in {description}")
+                    
+            except json.JSONDecodeError as e:
+                debug_steps.append(f"  - JSON decode error in {description}: {str(e)}")
+            except Exception as e:
+                debug_steps.append(f"  - Error loading {description}: {str(e)}")
+        
+        return jsonify({
+            "status": "FAILED",
+            "error": "No test data files could be loaded",
+            "debug_steps": debug_steps
+        })
+        
+    except Exception as e:
+        debug_steps.append(f"Critical error: {str(e)}")
+        return jsonify({
+            "status": "ERROR",
+            "error": str(e),
+            "debug_steps": debug_steps
+        }), 500
 
 @app.route('/api/debug/filesystem')
 def debug_filesystem():
