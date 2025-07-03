@@ -416,6 +416,35 @@ def predict_test_image(index):
     except Exception as e:
         return jsonify({"error": f"Error making prediction: {str(e)}"}), 500
 
+@app.route('/api/debug/filesystem')
+def debug_filesystem():
+    """Debug endpoint to check filesystem status"""
+    try:
+        debug_info = {
+            "working_directory": os.getcwd(),
+            "directory_contents": os.listdir('.'),
+            "static_exists": os.path.exists('static'),
+            "test_data_exists": os.path.exists('static/test_data.json'),
+            "test_data_small_exists": os.path.exists('static/test_data_small.json'),
+            "model_exists": os.path.exists('static/mnist_model.h5'),
+        }
+        
+        if os.path.exists('static'):
+            debug_info["static_contents"] = os.listdir('static')
+            
+        if os.path.exists('static/test_data.json'):
+            debug_info["test_data_size"] = os.path.getsize('static/test_data.json')
+            
+        if os.path.exists('static/test_data_small.json'):
+            debug_info["test_data_small_size"] = os.path.getsize('static/test_data_small.json')
+            
+        if os.path.exists('static/mnist_model.h5'):
+            debug_info["model_size"] = os.path.getsize('static/mnist_model.h5')
+            
+        return jsonify(debug_info)
+    except Exception as e:
+        return jsonify({"error": f"Debug filesystem error: {str(e)}"}), 500
+
 if __name__ == '__main__':
     print("Starting MNIST Neural Network Deployment Server...")
     
@@ -428,15 +457,20 @@ if __name__ == '__main__':
     model_loaded = load_pretrained_model()
     test_data_loaded = load_test_data()
     
+    # Always start the server, even if some assets fail to load
+    # This allows debugging endpoints to work
+    print(f"Asset loading status:")
+    print(f"  - Model loaded: {model_loaded}")
+    print(f"  - Test data loaded: {test_data_loaded}")
+    
     if model_loaded and test_data_loaded:
-        print("Pre-trained model and test data loaded successfully!")
-        print("Server ready for predictions!")
-        print(f"Starting Flask app on 0.0.0.0:{port}")
-        app.run(debug=False, host='0.0.0.0', port=port)
+        print("✅ All assets loaded successfully! Server ready for full functionality!")
+    elif model_loaded:
+        print("⚠️ Model loaded but test data failed - starting server with limited functionality")
+    elif test_data_loaded:
+        print("⚠️ Test data loaded but model failed - starting server with limited functionality")
     else:
-        print("Failed to load required assets:")
-        if not model_loaded:
-            print("  - Pre-trained model could not be loaded")
-        if not test_data_loaded:
-            print("  - Test data could not be loaded")
-        print("Server not started.")
+        print("❌ Both model and test data failed to load - starting server for debugging only")
+    
+    print(f"Starting Flask app on 0.0.0.0:{port}")
+    app.run(debug=False, host='0.0.0.0', port=port)
