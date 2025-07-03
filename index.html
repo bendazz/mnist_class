@@ -381,6 +381,15 @@
                     <button class="btn" onclick="testApiDirectly()" style="background-color: #3498db;">
                         🔧 Test API
                     </button>
+                    <button class="btn" onclick="debugFilesystem()" style="background-color: #e67e22;">
+                        📁 Debug Filesystem
+                    </button>
+                    <button class="btn" onclick="debugTestDataLoading()" style="background-color: #9b59b6;">
+                        🔍 Debug Test Data
+                    </button>
+                    <button class="btn" onclick="forceReloadData()" style="background-color: #f39c12;">
+                        🔄 Force Reload Data
+                    </button>
                 </div>
             
                 <div class="test-image-container" id="testImageContainer">
@@ -596,6 +605,148 @@
                 alert('API Test Error: ' + error.message);
             }
             console.log('=== API Test Completed ===');
+        }
+
+        async function debugFilesystem() {
+            console.log('=== Filesystem Debug Started ===');
+            try {
+                const response = await fetch('/api/debug/filesystem');
+                console.log('Filesystem debug status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Filesystem debug data:', data);
+                    
+                    let message = 'Filesystem Debug Results:\n\n';
+                    message += `Working Directory: ${data.working_directory}\n`;
+                    message += `Static Directory Exists: ${data.static_exists}\n`;
+                    message += `Test Data Exists: ${data.test_data_exists}\n`;
+                    message += `Test Data Small Exists: ${data.test_data_small_exists}\n`;
+                    message += `Model Exists: ${data.model_exists}\n\n`;
+                    
+                    if (data.static_contents) {
+                        message += `Static Directory Contents: ${data.static_contents.join(', ')}\n`;
+                    }
+                    
+                    if (data.test_data_size) {
+                        message += `Test Data Size: ${(data.test_data_size / (1024*1024)).toFixed(2)} MB\n`;
+                    }
+                    
+                    if (data.test_data_small_size) {
+                        message += `Test Data Small Size: ${(data.test_data_small_size / (1024*1024)).toFixed(2)} MB\n`;
+                    }
+                    
+                    alert(message);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Filesystem debug error:', errorText);
+                    alert('Filesystem Debug Failed: ' + errorText);
+                }
+            } catch (error) {
+                console.error('Filesystem Debug Error:', error);
+                alert('Filesystem Debug Error: ' + error.message);
+            }
+            console.log('=== Filesystem Debug Completed ===');
+        }
+
+        async function debugTestDataLoading() {
+            console.log('=== Test Data Loading Debug Started ===');
+            try {
+                const response = await fetch('/api/debug/test-data-loading');
+                console.log('Test data loading debug status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Test data loading debug data:', data);
+                    
+                    let message = 'Test Data Loading Debug Results:\n\n';
+                    message += `Current Test Data Status: ${data.current_test_data_status}\n\n`;
+                    
+                    data.loading_attempts.forEach((attempt, index) => {
+                        message += `Attempt ${index + 1}: ${attempt.description}\n`;
+                        message += `  File: ${attempt.file}\n`;
+                        message += `  Exists: ${attempt.exists}\n`;
+                        if (attempt.exists) {
+                            message += `  Size: ${attempt.size_mb} MB\n`;
+                            message += `  JSON Valid: ${attempt.json_valid}\n`;
+                            message += `  Loadable: ${attempt.loadable}\n`;
+                            if (attempt.num_images) {
+                                message += `  Images: ${attempt.num_images}\n`;
+                            }
+                            if (attempt.error) {
+                                message += `  Error: ${attempt.error}\n`;
+                            }
+                        }
+                        message += '\n';
+                    });
+                    
+                    if (data.dummy_data_generation) {
+                        message += `Dummy Data Generation: ${data.dummy_data_generation.available ? 'Available' : 'Not Available'}\n`;
+                        message += `Description: ${data.dummy_data_generation.description}\n`;
+                    }
+                    
+                    alert(message);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Test data loading debug error:', errorText);
+                    alert('Test Data Loading Debug Failed: ' + errorText);
+                }
+            } catch (error) {
+                console.error('Test Data Loading Debug Error:', error);
+                alert('Test Data Loading Debug Error: ' + error.message);
+            }
+            console.log('=== Test Data Loading Debug Completed ===');
+        }
+
+        async function forceReloadData() {
+            console.log('=== Force Reload Data Started ===');
+            try {
+                updateStatus('Forcing data reload...', 'ready');
+                
+                const response = await fetch('/api/debug/force-reload', {
+                    method: 'POST'
+                });
+                console.log('Force reload status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Force reload data:', data);
+                    
+                    let message = 'Force Reload Results:\n\n';
+                    message += `Model Reload: ${data.model_reload_success ? 'Success' : 'Failed'}\n`;
+                    message += `Test Data Reload: ${data.test_data_reload_success ? 'Success' : 'Failed'}\n`;
+                    
+                    if (data.test_data_source) {
+                        message += `Test Data Source: ${data.test_data_source}\n`;
+                    }
+                    
+                    if (data.test_images_count) {
+                        message += `Test Images Available: ${data.test_images_count}\n`;
+                    }
+                    
+                    if (data.errors && data.errors.length > 0) {
+                        message += `\nErrors:\n${data.errors.join('\n')}\n`;
+                    }
+                    
+                    alert(message);
+                    
+                    // Reload the page data
+                    await loadDatasetInfo();
+                    await loadModelInfo();
+                    updateStatus('Data reload complete!', 'ready');
+                    
+                } else {
+                    const errorText = await response.text();
+                    console.error('Force reload error:', errorText);
+                    alert('Force Reload Failed: ' + errorText);
+                    updateStatus('Force reload failed', 'error');
+                }
+            } catch (error) {
+                console.error('Force Reload Error:', error);
+                alert('Force Reload Error: ' + error.message);
+                updateStatus('Force reload error: ' + error.message, 'error');
+            }
+            console.log('=== Force Reload Data Completed ===');
         }
 
         function displayTestImage(imageData) {

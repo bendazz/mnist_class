@@ -445,6 +445,53 @@ def debug_filesystem():
     except Exception as e:
         return jsonify({"error": f"Debug filesystem error: {str(e)}"}), 500
 
+@app.route('/api/debug/force-reload', methods=['POST'])
+def force_reload_data():
+    """Force reload model and test data"""
+    global model, test_data, model_info
+    
+    result = {
+        "model_reload_success": False,
+        "test_data_reload_success": False,
+        "errors": []
+    }
+    
+    try:
+        # Force reload model
+        print("🔄 Force reloading pre-trained model...")
+        model_success = load_pretrained_model()
+        result["model_reload_success"] = model_success
+        
+        if not model_success:
+            result["errors"].append("Failed to reload pre-trained model")
+        
+        # Force reload test data
+        print("🔄 Force reloading test data...")
+        test_data_success = load_test_data()
+        result["test_data_reload_success"] = test_data_success
+        
+        if test_data_success:
+            if test_data and 'images' in test_data:
+                result["test_images_count"] = len(test_data['images'])
+                
+                # Determine source
+                if result["test_images_count"] == 10:
+                    result["test_data_source"] = "dummy data (fallback)"
+                elif result["test_images_count"] == 200:
+                    result["test_data_source"] = "small test data file"
+                elif result["test_images_count"] == 2000:
+                    result["test_data_source"] = "full test data file"
+                else:
+                    result["test_data_source"] = f"unknown ({result['test_images_count']} images)"
+        else:
+            result["errors"].append("Failed to reload test data")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        result["errors"].append(f"Exception during force reload: {str(e)}")
+        return jsonify(result), 500
+
 if __name__ == '__main__':
     print("Starting MNIST Neural Network Deployment Server...")
     
