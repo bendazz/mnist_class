@@ -67,18 +67,46 @@ def load_test_data():
     global test_data
     try:
         test_data_path = os.path.join('static', 'test_data.json')
+        print(f"Looking for test data at: {test_data_path}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Directory contents: {os.listdir('.')}")
+        
+        if os.path.exists('static'):
+            print(f"Static directory exists. Contents: {os.listdir('static')}")
+        else:
+            print("Static directory does not exist!")
+            return False
+            
         if not os.path.exists(test_data_path):
             print(f"Error: Test data file not found at {test_data_path}")
+            return False
+            
+        file_size = os.path.getsize(test_data_path)
+        print(f"Test data file found. Size: {file_size} bytes")
+        
+        if file_size == 0:
+            print("Error: Test data file is empty!")
             return False
             
         print("Loading test data...")
         with open(test_data_path, 'r') as f:
             test_data = json.load(f)
         
-        print(f"Test data loaded successfully! {len(test_data['images'])} test images available.")
+        print(f"Test data JSON loaded. Keys: {list(test_data.keys())}")
+        
+        if 'images' in test_data:
+            print(f"Test data loaded successfully! {len(test_data['images'])} test images available.")
+        else:
+            print(f"Error: Test data missing 'images' key. Available keys: {list(test_data.keys())}")
+            return False
+            
         return True
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error loading test data: {e}")
+        return False
     except Exception as e:
         print(f"Error loading test data: {e}")
+        print(f"Error type: {type(e).__name__}")
         return False
 
 @app.route('/static/<path:filename>')
@@ -97,6 +125,31 @@ def home():
             "error": "index.html not found",
             "message": "Make sure index.html is in the same directory as app.py"
         }), 404
+
+@app.route('/api/debug/filesystem')
+def debug_filesystem():
+    """Debug endpoint to check filesystem status"""
+    try:
+        debug_info = {
+            "working_directory": os.getcwd(),
+            "directory_contents": os.listdir('.'),
+            "static_exists": os.path.exists('static'),
+            "test_data_exists": os.path.exists('static/test_data.json'),
+            "model_exists": os.path.exists('static/mnist_model.h5'),
+        }
+        
+        if os.path.exists('static'):
+            debug_info["static_contents"] = os.listdir('static')
+            
+        if os.path.exists('static/test_data.json'):
+            debug_info["test_data_size"] = os.path.getsize('static/test_data.json')
+            
+        if os.path.exists('static/mnist_model.h5'):
+            debug_info["model_size"] = os.path.getsize('static/mnist_model.h5')
+            
+        return jsonify(debug_info)
+    except Exception as e:
+        return jsonify({"error": f"Debug filesystem error: {str(e)}"}), 500
 
 @app.route('/api')
 def api_info():
