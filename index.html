@@ -375,6 +375,9 @@
                     <button class="btn" onclick="predictCurrentImage()" id="predictButton" disabled>
                         🔮 Predict Label
                     </button>
+                    <button class="btn" onclick="console.log('Test button clicked!'); alert('JavaScript is working!');" style="background-color: #28a745;">
+                        🧪 Test JS
+                    </button>
                 </div>
             
                 <div class="test-image-container" id="testImageContainer">
@@ -510,37 +513,52 @@
         }
 
         async function loadRandomTestImage() {
+            console.log('loadRandomTestImage called');
             try {
                 updateStatus('Loading random test image...', 'ready');
+                console.log('About to fetch /api/test/random');
                 
                 const response = await fetch('/api/test/random');
+                console.log('Response received:', response.status, response.ok);
+                
                 if (!response.ok) {
-                    throw new Error('Failed to load test image');
+                    throw new Error(`Failed to load test image: ${response.status}`);
                 }
                 
                 const data = await response.json();
+                console.log('Data received:', data);
                 displayTestImage(data);
                 updateStatus('Test image loaded. Click "Predict Label" to see model prediction.', 'ready');
                 
             } catch (error) {
                 console.error('Error loading test image:', error);
-                updateStatus('Error loading test image', 'error');
+                updateStatus('Error loading test image: ' + error.message, 'error');
             }
         }
 
         function displayTestImage(imageData) {
+            console.log('displayTestImage called with:', imageData);
             const imgElement = document.getElementById('testImage');
             const trueLabelElement = document.getElementById('trueLabel');
             const indexElement = document.getElementById('testImageIndex');
+            
+            console.log('Elements found:', {
+                imgElement: !!imgElement,
+                trueLabelElement: !!trueLabelElement,
+                indexElement: !!indexElement
+            });
             
             imgElement.src = imageData.image;
             trueLabelElement.textContent = imageData.true_label;
             indexElement.textContent = imageData.index.toLocaleString();
             
             currentTestImage = imageData;
-            document.getElementById('testImageContainer').style.display = 'flex';
+            const testContainer = document.getElementById('testImageContainer');
+            console.log('Setting testImageContainer display to flex');
+            testContainer.style.display = 'flex';
             document.getElementById('testResults').style.display = 'none';
             document.getElementById('predictButton').disabled = false;
+            console.log('displayTestImage completed');
         }
 
         async function predictCurrentImage() {
